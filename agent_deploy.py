@@ -7,7 +7,6 @@ import os
 import sys
 import logging
 
-sys.path.insert(0, "/opt")
 
 from agents_core import BaseAgent, AgentContext, Message, MessageType
 
