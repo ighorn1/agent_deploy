@@ -49,7 +49,7 @@ class AgentCatalog:
         return {
             "nexus": {
                 "description": "Orchestrateur principal — coordonne tous les agents",
-                "repo": "https://github.com/youruser/nexus.git",
+                "repo": "https://git.piaf.im/sylvain/nexus.git",
                 "install_path_tpl": "/opt/{agent_name}",
                 "service_name_tpl": "{agent_name}",
                 "main_script": "nexus.py",
@@ -62,7 +62,7 @@ class AgentCatalog:
             },
             "debian": {
                 "description": "Agent d'administration système Debian",
-                "repo": "https://github.com/youruser/agent_debian.git",
+                "repo": "https://git.piaf.im/sylvain/agent_debian.git",
                 "install_path_tpl": "/opt/{agent_name}",
                 "service_name_tpl": "{agent_name}",
                 "main_script": "agent_debian.py",
@@ -73,7 +73,7 @@ class AgentCatalog:
             },
             "ansible": {
                 "description": "Agent d'automatisation Ansible",
-                "repo": "https://github.com/youruser/agent_ansible.git",
+                "repo": "https://git.piaf.im/sylvain/agent_ansible.git",
                 "install_path_tpl": "/opt/{agent_name}",
                 "service_name_tpl": "{agent_name}",
                 "main_script": "agent_ansible.py",
@@ -84,7 +84,7 @@ class AgentCatalog:
             },
             "deploy": {
                 "description": "Agent de déploiement d'autres agents",
-                "repo": "https://github.com/youruser/agent_deploy.git",
+                "repo": "https://git.piaf.im/sylvain/agent_deploy.git",
                 "install_path_tpl": "/opt/{agent_name}",
                 "service_name_tpl": "{agent_name}",
                 "main_script": "agent_deploy.py",
