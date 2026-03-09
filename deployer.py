@@ -259,7 +259,7 @@ class Deployer:
                 "jid": self.cfg.xmpp_jid,
                 "password": self.cfg.xmpp_password,
                 "admin_jids": self.cfg.extra.get("admin_jids", [self.cfg.extra.get("admin_jid", "")]),
-                "muc_room": self.cfg.extra.get("muc_room", "agents@conference.xmpp.ovh"),
+                "muc_room": self.cfg.extra.get("muc_room", "agents@muc.xmpp.ovh"),
                 "use_omemo": False,
             },
             "mqtt": {
