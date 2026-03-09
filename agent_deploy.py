@@ -16,8 +16,9 @@ logger = logging.getLogger(__name__)
 class AgentDeploy(BaseAgent):
     AGENT_TYPE = "deploy"
     DESCRIPTION = (
-        "Déploiement d'agents sur machines distantes ou locales via SSH. "
-        "Installe, configure et enregistre de nouveaux agents dans le système."
+        "Déploiement et installation de NOUVEAUX agents IA sur des serveurs distants via SSH. "
+        "Uniquement pour : installer un nouvel agent, déployer un agent sur une nouvelle machine. "
+        "NE PAS utiliser pour des tâches système courantes (apt, services, fichiers, etc.)."
     )
     DEFAULT_CONFIG_PATH = "/opt/agent_deploy/config/config.json"
 
