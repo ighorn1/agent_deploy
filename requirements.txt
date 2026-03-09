@@ -1,0 +1,3 @@
+agents_core @ file:///opt/agents_core
+paramiko>=3.0
+requests>=2.28

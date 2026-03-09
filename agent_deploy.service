@@ -1,0 +1,18 @@
+[Unit]
+Description=Agent Deploy — Déploiement d'agents
+After=network.target mosquitto.service
+Wants=mosquitto.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/agent_deploy
+ExecStart=/opt/agent_deploy/venv/bin/python /opt/agent_deploy/agent_deploy.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=agent-deploy
+
+[Install]
+WantedBy=multi-user.target
