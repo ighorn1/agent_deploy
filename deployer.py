@@ -18,7 +18,7 @@ CATALOG_PATH = "/opt/agent_deploy/config/catalog.json"
 @dataclass
 class DeployConfig:
     """Paramètres d'un déploiement."""
-    agent_type: str          # type d'agent : debian, ansible, deploy...
+    agent_type: str          # type d'agent : debian, ansible, deploy... ou "custom"
     agent_name: str          # nom choisi par l'utilisateur (ex: "debian-prod")
     host: str                # IP ou hostname cible
     ssh_user: str            # utilisateur SSH
@@ -30,6 +30,9 @@ class DeployConfig:
     mqtt_port: int = 1883
     local: bool = False      # installation locale (pas de SSH)
     extra: dict = field(default_factory=dict)
+    git_url: Optional[str] = None        # bypass catalogue : URL git directe
+    main_script: Optional[str] = None    # script principal (None = auto-détection)
+    apt_deps: list = field(default_factory=list)   # override des dépendances apt
 
 
 class AgentCatalog:
@@ -123,8 +126,16 @@ class Deployer:
         self._cb      = progress_cb or (lambda msg: logger.info(msg))
         self._ssh     = None
 
+    # Dépendances apt minimales pour tout agent Python custom
+    _DEFAULT_APT_DEPS = ["python3", "python3-pip", "python3-venv", "git"]
+
     def deploy(self) -> tuple[bool, str]:
         """Lance le déploiement. Retourne (succès, message)."""
+        # ── Mode "from_git" : repo arbitraire, sans catalogue ──────────────
+        if self.cfg.git_url:
+            return self._deploy_from_git()
+
+        # ── Mode catalogue ──────────────────────────────────────────────────
         agent_info = self.catalog.get(self.cfg.agent_type)
         if not agent_info:
             return False, f"Type d'agent inconnu : '{self.cfg.agent_type}'. Disponibles : {self.catalog.list_types()}"
@@ -163,6 +174,73 @@ class Deployer:
             f"Chemin : {install_path}\n"
             f"JID XMPP : {self.cfg.xmpp_jid}"
         )
+
+    def _deploy_from_git(self) -> tuple[bool, str]:
+        """Déploie un agent depuis une URL git arbitraire (sans catalogue)."""
+        install_path = f"/opt/{self.cfg.agent_name}"
+        service_name = self.cfg.agent_name
+        apt_deps     = self.cfg.apt_deps or self._DEFAULT_APT_DEPS
+
+        # Le main_script sera détecté après le clone si non fourni
+        main_script_holder = [self.cfg.main_script]
+
+        def detect_script():
+            if main_script_holder[0]:
+                return True, main_script_holder[0]
+            ok, result = self._detect_main_script(install_path)
+            if ok:
+                main_script_holder[0] = result
+            return ok, result
+
+        steps = [
+            ("Connexion SSH",          lambda: self._connect()),
+            ("Dépendances système",    lambda: self._install_apt(apt_deps)),
+            ("Clonage du dépôt",       lambda: self._clone_repo(self.cfg.git_url, install_path)),
+            ("Détection script",       detect_script),
+            ("Environnement Python",   lambda: self._setup_venv(install_path, [])),
+            ("Configuration",          lambda: self._write_config(install_path, "custom")),
+            ("Service systemd",        lambda: self._setup_service(install_path, service_name, main_script_holder[0])),
+            ("Démarrage",              lambda: self._start_service(service_name)),
+        ]
+
+        for step_name, step_fn in steps:
+            self._cb(f"⏳ {step_name}...")
+            try:
+                ok, msg = step_fn()
+                if not ok:
+                    self._cb(f"❌ {step_name} échoué : {msg}")
+                    self._disconnect()
+                    return False, f"Échec à l'étape '{step_name}' : {msg}"
+                self._cb(f"✓ {step_name}" + (f" → {msg}" if step_name == "Détection script" else ""))
+            except Exception as e:
+                self._disconnect()
+                return False, f"Exception lors de '{step_name}' : {e}"
+
+        self._disconnect()
+        return True, (
+            f"Agent '{self.cfg.agent_name}' déployé depuis {self.cfg.git_url}\n"
+            f"Script : {main_script_holder[0]}\n"
+            f"Service : {service_name}\n"
+            f"Chemin : {install_path}\n"
+            f"JID XMPP : {self.cfg.xmpp_jid}"
+        )
+
+    def _detect_main_script(self, install_path: str) -> tuple[bool, str]:
+        """Détecte automatiquement le script principal dans le repo cloné."""
+        # Priorité : agent_*.py > main.py > premier .py avec __main__
+        cmd = (
+            f"cd {install_path} && ("
+            f"ls agent_*.py 2>/dev/null | head -1 || "
+            f"ls main.py 2>/dev/null || "
+            f"grep -rl '__main__' *.py 2>/dev/null | head -1 || "
+            f"ls *.py 2>/dev/null | grep -v 'setup.py\\|conf' | head -1"
+            f")"
+        )
+        ok, out = self._run_remote(cmd)
+        script = out.strip().splitlines()[0].strip() if out.strip() else ""
+        if not script:
+            return False, "Aucun script Python trouvé à la racine du dépôt"
+        return True, script
 
     # ──────────────────────────────────────────────
     # Étapes de déploiement
@@ -241,9 +319,13 @@ class Deployer:
 
     def _write_config(self, install_path: str, template: str) -> tuple[bool, str]:
         """Écrit config.json avec les paramètres fournis par l'utilisateur."""
-        # Récupère les extra_config du catalogue pour ce type d'agent
-        agent_info   = self.catalog.get(self.cfg.agent_type) or {}
-        catalog_extra = agent_info.get("extra_config", {})
+        # Pour un déploiement custom (from_git), pas d'infos catalogue
+        if template == "custom":
+            agent_info, catalog_extra = {}, {}
+        else:
+            # Récupère les extra_config du catalogue pour ce type d'agent
+            agent_info    = self.catalog.get(self.cfg.agent_type) or {}
+            catalog_extra = agent_info.get("extra_config", {})
 
         # Résout les templates dans les valeurs (ex: /opt/{agent_name}/config/catalog.json)
         resolved_extra = {}

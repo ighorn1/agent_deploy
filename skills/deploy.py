@@ -21,7 +21,9 @@ DESCRIPTION = "Déployer un agent sur une machine distante (SSH) ou locale"
 USAGE = (
     "SKILL:deploy ARGS:catalog  — liste les agents déployables\n"
     "SKILL:deploy ARGS:start <type> <nom> <host> <user> password <mdp> <xmpp_jid> <xmpp_pass> <mqtt_host>\n"
-    "SKILL:deploy ARGS:local <type> <nom> <xmpp_jid> <xmpp_pass> <mqtt_host>"
+    "SKILL:deploy ARGS:local <type> <nom> <xmpp_jid> <xmpp_pass> <mqtt_host>\n"
+    "SKILL:deploy ARGS:from_git <git_url> <nom> <host> <user> password|key <credential> <xmpp_jid> <xmpp_pass> <mqtt_host> [main_script]\n"
+    "SKILL:deploy ARGS:from_git_local <git_url> <nom> <xmpp_jid> <xmpp_pass> <mqtt_host> [main_script]"
 )
 
 
@@ -74,6 +76,51 @@ def run(args: str, context) -> str:
             xmpp_password=p[7],
             mqtt_host=p[8],
             mqtt_port=int(p[9]) if len(p) > 9 else 1883,
+        )
+        return _do_deploy(cfg, context)
+
+    if action == "from_git":
+        # ARGS: from_git <git_url> <nom> <host> <user> password|key <credential> <xmpp_jid> <xmpp_pass> <mqtt_host> [main_script]
+        p = rest.split()
+        if len(p) < 9:
+            return (
+                "Format : from_git <git_url> <nom> <host> <user> password|key <credential> "
+                "<xmpp_jid> <xmpp_pass> <mqtt_host> [main_script]"
+            )
+        cfg = DeployConfig(
+            agent_type="custom",
+            agent_name=p[1],
+            host=p[2],
+            ssh_user=p[3],
+            ssh_auth=p[4],
+            ssh_credential=p[5],
+            xmpp_jid=p[6],
+            xmpp_password=p[7],
+            mqtt_host=p[8],
+            mqtt_port=int(p[9]) if len(p) > 9 and p[9].isdigit() else 1883,
+            git_url=p[0],
+            main_script=p[10] if len(p) > 10 else None,
+        )
+        return _do_deploy(cfg, context)
+
+    if action == "from_git_local":
+        # ARGS: from_git_local <git_url> <nom> <xmpp_jid> <xmpp_pass> <mqtt_host> [main_script]
+        p = rest.split()
+        if len(p) < 5:
+            return "Format : from_git_local <git_url> <nom> <xmpp_jid> <xmpp_pass> <mqtt_host> [main_script]"
+        cfg = DeployConfig(
+            agent_type="custom",
+            agent_name=p[1],
+            host="localhost",
+            ssh_user="root",
+            ssh_auth="",
+            ssh_credential="",
+            xmpp_jid=p[2],
+            xmpp_password=p[3],
+            mqtt_host=p[4],
+            local=True,
+            git_url=p[0],
+            main_script=p[5] if len(p) > 5 else None,
         )
         return _do_deploy(cfg, context)
 
