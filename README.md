@@ -23,7 +23,7 @@ systemctl enable --now agent_deploy
 | `deploy` | Déploie un agent depuis le catalogue sur un serveur distant (SSH) |
 | `catalog` | Consulte le catalogue des agents déployables |
 | `ssh` | Connexion SSH et exécution de commandes distantes |
-| `script` | Bibliothèque de scripts bash (save/list/show/exec/run/delete) |
+| `script` | Bibliothèque de scripts bash (save/list/show/edit/exec/run/delete) |
 | `agents_status` | Statut des agents du système |
 | `mqtt_send` | Publication sur un topic MQTT |
 | `mqtt_subscribe` | Souscription dynamique à un topic MQTT |
