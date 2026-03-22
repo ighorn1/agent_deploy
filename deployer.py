@@ -99,6 +99,17 @@ class AgentCatalog:
                     "catalog": "/opt/{agent_name}/config/catalog.json"
                 },
             },
+            "hal": {
+                "description": "Agent HAL — contrôle système complet + édition code/fichiers",
+                "repo": "https://git.piaf.im/sylvain/agent_hal.git",
+                "install_path_tpl": "/opt/{agent_name}",
+                "service_name_tpl": "{agent_name}",
+                "main_script": "agent_hal.py",
+                "apt_deps": ["python3", "python3-pip", "python3-venv", "git", "mosquitto-clients", "sshpass"],
+                "pip_deps": ["slixmpp-omemo"],
+                "config_template": "debian",
+                "extra_config": {"work_hours": "00:00-23:59"},
+            },
         }
 
     def get(self, agent_type: str) -> Optional[dict]:
